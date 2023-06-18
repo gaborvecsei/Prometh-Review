@@ -1,0 +1,8 @@
+{
+  "service": "stash",
+  "base_url": "stash.my.super.domain",
+  "project_key": "superproject",
+  "gpt_type": "gpt-3.5-turbo-16k",
+  "nb_context_lines": 5,
+  "exclude_file_types": [".ipynb"]
+}
