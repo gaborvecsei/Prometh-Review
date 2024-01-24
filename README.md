@@ -16,33 +16,37 @@ You can also start an interactive session and talk with the AI about the changes
 
 # Setup
 
-## Required Tools
-
-`git`, `python3` and `pip3` is required. The required packages are in the `requirements.txt`.
-
 ## Install
 
 ```
-$ pip3 install git+https://github.com/gaborvecsei/Prometh-Review.git
+$ pip install git+https://github.com/gaborvecsei/Prometh-Review.git
 ```
 
-Or `Docker` can be used
+Or `Docker` can be used (but you'll have to mount the repo so the `git diff` can be accessed inside the container)
 
 ```shell
 docker built -t prometh .
 ```
 
-## Environment variables
-
-You'll need some environment variables depending on how you'd like to run the tool
+## LLM type
 
 ### OpenAI
 
-Required to use the OpenAI GPT LLM family
+You only need the OpenAI API key (see the setup of environment variables)
 
-```
-export OPENAI_API_KEY=<YOUR_TOKEN>
-```
+### Self hosted LLM
+
+I am using the `LocalAI` solutions: https://localai.io/
+
+- Find the model you'd like to serve - https://localai.io/basics/getting_started/index.html
+- Start the docker container
+- Test if it's running (e.g.: `curl http://<IP>:<PORT>/v1/models`)
+- Retrieve the model name that you're hosting (e.g.: `mistral-openorca`)
+  - You can get this from the `curl` request above
+
+## Environment variables
+
+You'll need some environment variables depending on how you'd like to run the tool
 
 ### Stash/Bitbucket
 
@@ -50,6 +54,14 @@ Required if you have the repo on Stash/Bitbucket
 
 ```
 export STASH_HTTP_ACCESS_TOKEN=<YOUR_TOKEN>
+```
+
+### OpenAI
+
+Required to use the OpenAI GPT LLM family
+
+```
+export OPENAI_API_KEY=<YOUR_TOKEN>
 ```
 
 ### GitHub
@@ -62,28 +74,24 @@ TODO
 
 # Usage
 
-- On your machine **go to the folder of the repository**. Update the refs. You can use the script only from there
+## Setup
+
+- Go to the folder of the repository where you'll run `prometh`
   - (_Why?_ It works from the local `git diff`, I really don't want to parse Github/Bitbucket API diff responses...)
-- Get the necessary parameters from Github/Stash/Bitbucket (check the help for these). These are the most important ones:
+- Update refs (if required)
+- Retrieve the necessary parameters (check these by running `prometh -h`)
   - Project Name (e.g.: AI)
   - Repo slug (simplified name of the repository) (e.g.: churn-prediction)
   - Pull request ID (e.g.: 85)
+- Run the tool: `prometh -h`
+  - OpenAI LLM: `prometh -p ai -r churn-prediction -id 85 --base-url stash.mycompany.com --llm-type gpt-4`
+  - Local LLM: `prometh -p ai -r churn-prediction -id 85 --base-url stash.mycompany.com --llm-type mistral-openorca --llm-url http://localhost:8080"`
+
+Also, docker can be used, just don't forget to mount the repo as a volume
 
 ```
-$ prometh --help
+$ docker run -it -e OPENAI_API_KEY="TODO" [other required env vars] -v <PROJECT_DIR>:/src prometh prometh -h
 ```
-
-```
-$ docker run -it -e OPENAI_API_KEY="TODO" [other required env vars] prometh prometh -h
-```
-
-There are 2 modes for the LLMs:
-- **OpenAI** based
-    - You only need to include the OpenAI Token and you are ready to go
-- **Local/On-prem** deployment based with [`LocalAI`](https://github.com/go-skynet/LocalAI)
-    - You'll need to deploy a LLM (no GPUs required) by following the *how-to* in the repo above
-    - Once you have a deployment, confirm it with `curl http://localhost:8080/v1/models`
-    - In the CLI use the model name you've deployed, e.g.: `prometh --llm-type my_deployed_model ...` 
 
 ## Defaults
 
@@ -92,14 +100,6 @@ You can set default values for some of the not commonly used parameters (e.g.: b
 The localtion of the file should be in your home `~/.promethrc.json`.
 
 See the example included in the repo (`.promethrc.json.example`).
-
-## Example
-
-```
-$ prometh -p ai -r churn-prediction -id 85 -c 10 -i
-```
-
-> (AI Stash project, churn-prediction repository, pull request with the id 85)
 
 # FAQ
 
