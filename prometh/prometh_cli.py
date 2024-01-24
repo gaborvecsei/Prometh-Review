@@ -25,6 +25,10 @@ def get_args() -> argparse.Namespace:
     parser.add_argument("-p", "--project-key", type=str, help="Project key")
     # TODO: include the choices for the GPT types
     parser.add_argument("--llm-type", default="gpt-3.5-turbo", type=str, help="LLM type. Default: gpt-3.5-turbo")
+    parser.add_argument("--llm-url",
+                        default=None,
+                        type=str,
+                        help="URL for a self-hosted LLM. Not required when using OpenAI")
     parser.add_argument(
         "-c",
         "--nb-context-lines",
@@ -134,7 +138,7 @@ class StashAPI:
         }
 
 
-def generate_llm_response(gpt_type: str, messages: List[dict]) -> Tuple[str, Any]:
+def generate_llm_response(gpt_type: str, messages: List[dict], llm_url: str) -> Tuple[str, Any]:
     response: Optional[str] = "No Response"
     usage_metrics = None
 
@@ -149,7 +153,7 @@ def generate_llm_response(gpt_type: str, messages: List[dict]) -> Tuple[str, Any
     else:
         # If it's not an OpenAI GPT type, it's a custom locally deployed GPT type
         # TODO: make this endpoint configurable & the parameters
-        url = "http://localhost:8080/v1/chat/completions"
+        url = f"{llm_url}/v1/chat/completions"
         headers = {"Content-Type": "application/json"}
         data = {"model": gpt_type, "messages": messages, "temperature": 0.7}
         resp = requests.post(url, headers=headers, data=json.dumps(data))
@@ -159,7 +163,12 @@ def generate_llm_response(gpt_type: str, messages: List[dict]) -> Tuple[str, Any
     return response, usage_metrics
 
 
-def analyze_pr_with_GPT(pr_title, pr_description, diff_output, gpt_type, print_prompt: bool = False):
+def analyze_pr_with_GPT(pr_title,
+                        pr_description,
+                        diff_output,
+                        gpt_type,
+                        print_prompt: bool = False,
+                        llm_url: Optional[str] = None):
     prompt = f""" You are a senior engineer and your task is the following:
         - Review the code changes provided in a diff and provide feedback
         - Separately point out the bugs, security issues, missed best-practices
@@ -210,7 +219,7 @@ def analyze_pr_with_GPT(pr_title, pr_description, diff_output, gpt_type, print_p
     if print_prompt:
         print("\n".join([message["content"] for message in messages]))
 
-    response, usage_metrics = generate_llm_response(gpt_type, messages)
+    response, usage_metrics = generate_llm_response(gpt_type, messages, llm_url)
 
     # Add the analyzis message to the message for the interactive chatting
     messages.append({"role": "assistant", "content": response})
@@ -289,16 +298,17 @@ def main():
         raise Exception("No diff output. Something is wrong, but I don't care.")
 
     analyzis_message, usage_metrics, messages = analyze_pr_with_GPT(pr_title, pr_description, diff_output,
-                                                                    args.llm_type, args.show_prompt)
+                                                                    args.llm_type, args.show_prompt, args.llm_url)
 
     if usage_metrics:
         table = Table(title="OpenAPI Usage Metrics")
         table.add_column("Metric", justify="right", style="bold", no_wrap=True)
         table.add_column("Value")
-        for key, value in {"completion_tokens": usage_metrics.completion_tokens,
-                           "prompt_tokens": usage_metrics.prompt_tokens,
-                           "total_tokens": usage_metrics.total_tokens,
-                           }.items():
+        for key, value in {
+                "completion_tokens": usage_metrics.completion_tokens,
+                "prompt_tokens": usage_metrics.prompt_tokens,
+                "total_tokens": usage_metrics.total_tokens,
+        }.items():
             table.add_row(key, str(value))
         console.print(table)
 
