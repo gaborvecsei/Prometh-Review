@@ -144,7 +144,6 @@ def generate_llm_response(gpt_type: str, messages: List[dict]) -> Tuple[str, Any
         client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
         chat_completion = client.chat.completions.create(model=gpt_type, messages=messages)
-        import pudb; pudb.set_trace()
         response = chat_completion.choices[0].message.content
         usage_metrics = chat_completion.usage
     else:
