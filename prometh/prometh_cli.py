@@ -3,7 +3,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import openai
 import requests
@@ -17,10 +17,6 @@ OPENAI_GPT_TYPES = {
     "gpt-3.5-turbo-0301",    # Older ChatGPT released in March 2022
     "gpt-4",    # GPT-4 (this is more than ~10X the price compared to ChatGPT)
 }
-
-client = openai.OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY", ""),
-)
 
 
 def get_args() -> argparse.Namespace:
@@ -138,17 +134,19 @@ class StashAPI:
         }
 
 
-def generate_llm_response(gpt_type: str, messages: List[dict]) -> Tuple[str, Optional[dict]]:
-    response: str = "No Response"
-    usage_metrics: Optional[dict] = None
+def generate_llm_response(gpt_type: str, messages: List[dict]) -> Tuple[str, Any]:
+    response: Optional[str] = "No Response"
+    usage_metrics = None
 
     if gpt_type in OPENAI_GPT_TYPES:
         if "OPENAI_API_KEY" not in os.environ:
             raise ValueError("OPENAI_API_KEY is not set")
+        client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-        chat_completion: dict = openai.ChatCompletion.create(model=gpt_type, messages=messages)
-        response = chat_completion["choices"][0]["message"]["content"]
-        usage_metrics = chat_completion["usage"]
+        chat_completion = client.chat.completions.create(model=gpt_type, messages=messages)
+        import pudb; pudb.set_trace()
+        response = chat_completion.choices[0].message.content
+        usage_metrics = chat_completion.usage
     else:
         # If it's not an OpenAI GPT type, it's a custom locally deployed GPT type
         # TODO: make this endpoint configurable & the parameters
@@ -298,7 +296,10 @@ def main():
         table = Table(title="OpenAPI Usage Metrics")
         table.add_column("Metric", justify="right", style="bold", no_wrap=True)
         table.add_column("Value")
-        for key, value in usage_metrics.items():
+        for key, value in {"completion_tokens": usage_metrics.completion_tokens,
+                           "prompt_tokens": usage_metrics.prompt_tokens,
+                           "total_tokens": usage_metrics.total_tokens,
+                           }.items():
             table.add_row(key, str(value))
         console.print(table)
 
