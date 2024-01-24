@@ -18,6 +18,10 @@ OPENAI_GPT_TYPES = {
     "gpt-4",    # GPT-4 (this is more than ~10X the price compared to ChatGPT)
 }
 
+client = openai.OpenAI(
+    api_key=os.environ.get("OPENAI_API_KEY", ""),
+)
+
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Prometh Review - AI Pull Request Reviewer Companion")
