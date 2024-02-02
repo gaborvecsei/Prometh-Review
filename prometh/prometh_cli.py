@@ -169,20 +169,27 @@ def analyze_pr_with_GPT(pr_title,
                         gpt_type,
                         print_prompt: bool = False,
                         llm_url: Optional[str] = None):
-    prompt = f""" You are a senior engineer and your task is the following:
-        - Review the code changes provided in a diff and provide feedback
-        - Separately point out the bugs, security issues, missed best-practices
-        - If there are any bugs, highlight them (and use 'BUG' tag at the start of the line).
-        - Does the code do what it says in the pull request title, description?
-        - Do not do nitpicking, discard minor issues.
-        - Use markdown headers and bullet points to organize your feedback
-        - In your output use the following headers: '**Summary**', '**Bugs**', '**Security**', '**Best-practices**', '**Other**'
-        - Provide security recommendations if there are any.
-        - Provide details on missed use of best-practices.
-        - Be concise and to the point.
+    prompt = f"""As a tech reviewer, please provide an in-depth review of the
+following pull request git diff data. Your task is to carefully analyze the title, body, and
+changes made in the pull request and identify any problems that need addressing including 
+security issues. Please provide clear descriptions of each problem and offer constructive 
+suggestions for how to address them. Additionally, please consider ways to optimize the 
+changes made in the pull request. You should focus on providing feedback that will help
+improve the quality of the codebase while also remaining concise and clear in your
+explanations. Please note that unnecessary explanations or summaries should be avoided
+as they may delay the review process. Your feedback should be provided in a timely
+manner, using language that is easy to understand and follow.
 
-        You are provided with the code changes (diffs) in a unidiff format.
-    """
+You are provided with the code changes (diffs) in a unidiff format.
+
+Your output should be a short summary of the changes and then a more detailed in a table format with the following columns:
+- Problem category: Bug, Security, Optimization, etc.
+- File name
+- Line number(s)
+- Description of the problem - where code can be included
+- Suggestion for improvement - where code can be included
+- Example code/solution
+"""
 
     pr_description_message = f"""A description was given to help you assist in understand why these changes were made.
     The description was provided in a markdown format.
